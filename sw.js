@@ -1,9 +1,14 @@
 /* ============================================================
-   HabitFly — service worker (ISSUE-00)
-   Caches the app shell so HabitFly opens with no network.
-   Strategy: cache-first for shell assets; navigations fall
-   back to the cached index.html when offline.
-   Bump CACHE when shell assets change to retire old caches.
+   HabitFly — service worker (sw.js)
+   Strategy: STALE-WHILE-REVALIDATE for same-origin GETs.
+   - Serve the cached copy instantly (fast, works offline).
+   - In the background, fetch the network copy and update the cache.
+   - So a deploy auto-propagates: users see the new version on their
+     NEXT launch, with no manual cache-version bump needed.
+   Navigations fall back to cached index.html when offline.
+
+   Bump CACHE only to force a full purge of old entries — routine
+   content changes no longer require it.
    ============================================================ */
 
 const CACHE = 'habitfly-shell-v7';
@@ -22,7 +27,7 @@ const ASSETS = [
   './fonts/D-DIN-Bold.otf'
 ];
 
-// Install: precache the whole shell.
+// Install: precache the shell so the very first offline load works.
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE)
@@ -31,31 +36,39 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activate: delete any older caches.
+// Activate: drop any older caches, take control immediately.
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(
-        keys.filter((key) => key !== CACHE).map((key) => caches.delete(key))
-      ))
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
 
-// Fetch: serve from cache first; fall back to network.
+// Fetch: stale-while-revalidate for same-origin GETs.
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET') return;
+  if (new URL(request.url).origin !== self.location.origin) return;
 
   event.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) return cached;
-      return fetch(request).catch(() => {
-        // Offline and not cached: for page navigations, show the app shell.
-        if (request.mode === 'navigate') {
-          return caches.match('./index.html');
-        }
-      });
-    })
+    caches.open(CACHE).then((cache) =>
+      cache.match(request).then((cached) => {
+        const networkFetch = fetch(request).then((res) => {
+          // Only cache good, complete responses.
+          if (res && res.ok && res.type === 'basic') cache.put(request, res.clone());
+          return res;
+        }).catch(function () { return null; });
+
+        // Keep the SW alive long enough to finish the background update.
+        event.waitUntil(networkFetch);
+
+        // Serve cache now if we have it; otherwise wait for the network,
+        // and for offline page navigations fall back to the app shell.
+        return cached || networkFetch.then((res) =>
+          res || (request.mode === 'navigate' ? cache.match('./index.html') : Response.error())
+        );
+      })
+    )
   );
 });
