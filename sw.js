@@ -6,7 +6,7 @@
    Bump CACHE when shell assets change to retire old caches.
    ============================================================ */
 
-const CACHE = 'habitfly-shell-v4';
+const CACHE = 'habitfly-shell-v5';
 
 const ASSETS = [
   './',

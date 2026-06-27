@@ -132,6 +132,7 @@
       '</div>';
     if (seg === 'active') {
       const list = Store.getHabits({ active: true });
+      if (list.length >= 40) html += '<div class="scale-note">You have a lot of habits — consider archiving ones you no longer track.</div>';
       html += list.length
         ? '<div class="habit-list">' + list.map(function (h) { return cardHTML(h, { handle: true }); }).join('') + '</div>'
         : emptyHabits('No habits yet. Tap + to add one.');
@@ -177,11 +178,41 @@
       try {
         if (!confirm('Replace all current data with this backup?')) return;
         Store.importJSON(String(reader.result));
+        Store.clearCorrupt();
+        const rec = document.getElementById('recovery');
+        if (rec) rec.remove();
         render();
         alert('Backup imported.');
       } catch (e) { alert('Could not import: ' + e.message); }
     };
     reader.readAsText(file);
+  }
+
+  /* ---------- onboarding + recovery (ISSUE-09 / ISSUE-10) ---------- */
+  function showOnboarding() {
+    const el = document.createElement('div');
+    el.className = 'onboarding'; el.id = 'onboarding';
+    el.innerHTML =
+      '<div class="onb-inner">' +
+        '<img class="onb-logo" src="habitfly_logo.png" alt="" />' +
+        '<div class="onb-word">Habit<span class="wordmark-accent">Fly</span></div>' +
+        '<div class="onb-tag">Habits anywhere. Simple.</div>' +
+        '<button class="onb-cta" type="button">Create your first habit</button>' +
+      '</div>';
+    document.body.appendChild(el);
+  }
+  function showRecovery() {
+    const el = document.createElement('div');
+    el.className = 'onboarding'; el.id = 'recovery';
+    el.innerHTML =
+      '<div class="onb-inner">' +
+        '<div class="onb-word">Couldn’t read your data</div>' +
+        '<div class="onb-tag">Your saved data looks corrupted. Restore from a backup, or start fresh.</div>' +
+        '<button class="onb-cta" type="button" data-rec="import">Import a backup</button>' +
+        '<button class="onb-secondary" type="button" data-rec="fresh">Start fresh</button>' +
+        '<input id="import-file" type="file" accept="application/json,.json" hidden />' +
+      '</div>';
+    document.body.appendChild(el);
   }
 
   function emptyStateHTML() {
@@ -364,6 +395,22 @@
     // a swipe/drag just happened on this element — swallow the click
     if (App._gestureGuard && App._gestureGuard()) return;
 
+    // onboarding / recovery overlay buttons
+    const onb = t.closest && t.closest('.onb-cta, .onb-secondary');
+    if (onb) {
+      if (onb.dataset.rec === 'import') { document.getElementById('import-file').click(); return; }
+      if (onb.dataset.rec === 'fresh') {
+        Store.deleteAllData(); Store.clearCorrupt();
+        const r = document.getElementById('recovery'); if (r) r.remove();
+        render(); return;
+      }
+      // plain onboarding CTA → create first habit
+      Store.setOnboarded(true);
+      const o = document.getElementById('onboarding'); if (o) o.remove();
+      openScreen(habitFormScreen(null));
+      return;
+    }
+
     // tab bar
     const tab = t.closest && t.closest('.tab');
     if (tab) { showTab(tab.dataset.view); return; }
@@ -536,6 +583,11 @@
   }
 
   /* ---------- boot ---------- */
-  window.HabitFly = { render: render, showTab: showTab };
-  document.addEventListener('DOMContentLoaded', function () { showTab('today'); });
+  function boot() {
+    showTab('today');
+    if (Store.isCorrupt()) { showRecovery(); return; }
+    if (!Store.isOnboarded() && Store.count() === 0) showOnboarding();
+  }
+  window.HabitFly = { render: render, showTab: showTab, showOnboarding: showOnboarding };
+  document.addEventListener('DOMContentLoaded', boot);
 })();
