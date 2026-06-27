@@ -234,6 +234,63 @@
     render();
   }
 
+  /* ---------- heatmap detail + backdating (ISSUE-05) ---------- */
+  function fmtDate(date) {
+    const d = new Date(date + 'T12:00:00');
+    return d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+  }
+  function detailScreen(habit) {
+    return '' +
+      '<header class="screen-head">' +
+        '<button class="screen-back" type="button">‹ Back</button>' +
+        '<span class="screen-title">' + esc(habit.name) + '</span>' +
+        '<button class="screen-edit" type="button" data-id="' + habit.id + '">Edit</button>' +
+      '</header>' +
+      '<div class="detail-body">' +
+        '<p class="detail-hint">Tap a day to add or edit it.</p>' +
+        '<div id="detail-hm">' + heatmapHTML(habit, { big: true, interactive: true }) + '</div>' +
+      '</div>';
+  }
+  function openDetail(id) {
+    const h = Store.getHabit(id);
+    if (!h) return;
+    App.detailId = id;
+    openScreen(detailScreen(h));
+  }
+  function refreshDetail() {
+    const h = App.detailId && Store.getHabit(App.detailId);
+    const host = $('#detail-hm');
+    if (h && host) host.innerHTML = heatmapHTML(h, { big: true, interactive: true });
+  }
+  function handleDayEdit(habitId, date) {
+    const h = Store.getHabit(habitId);
+    if (!h) return;
+    if (h.type === 'binary') { Store.toggleBinary(habitId, date); refreshDetail(); render(); }
+    else openDayPop(habitId, date);
+  }
+  function openDayPop(habitId, date) {
+    const h = Store.getHabit(habitId);
+    const c = Store.getCount(habitId, date);
+    const pop = document.createElement('div');
+    pop.className = 'daypop-backdrop';
+    pop.innerHTML =
+      '<div class="daypop">' +
+        '<div class="daypop-date">' + fmtDate(date) + '</div>' +
+        '<div class="stepper"><button type="button" class="dp-down">–</button>' +
+        '<span class="dp-val">' + c + '</span>' +
+        '<button type="button" class="dp-up">+</button></div>' +
+        '<div class="dp-target">of ' + h.target + '</div>' +
+        '<button type="button" class="dp-done">Done</button>' +
+      '</div>';
+    document.body.appendChild(pop);
+    App.dayPop = { habitId: habitId, date: date };
+  }
+  function closeDayPop() {
+    const p = document.querySelector('.daypop-backdrop');
+    if (p) p.remove();
+    App.dayPop = null;
+  }
+
   /* ---------- global event handling ---------- */
   let pressTimer = null, didLongPress = false;
 
@@ -250,6 +307,32 @@
     // screen header
     if (t.closest && t.closest('.screen-cancel')) { closeScreen(); return; }
     if (t.closest && t.closest('.screen-save')) { saveForm(); return; }
+    if (t.closest && t.closest('.screen-back')) { App.detailId = null; closeScreen(); return; }
+    if (t.closest && t.closest('.screen-edit')) {
+      const h = Store.getHabit(t.closest('.screen-edit').dataset.id);
+      if (h) openScreen(habitFormScreen(h));
+      return;
+    }
+
+    // day popover (multi-count backdating)
+    if (t.closest && t.closest('.daypop')) {
+      if (t.closest('.dp-up') || t.closest('.dp-down')) {
+        const h = Store.getHabit(App.dayPop.habitId);
+        const cur = Store.getCount(App.dayPop.habitId, App.dayPop.date);
+        const next = t.closest('.dp-up') ? Math.min(h.target, cur + 1) : Math.max(0, cur - 1);
+        Store.setCount(App.dayPop.habitId, App.dayPop.date, next);
+        $('.dp-val').textContent = next;
+        refreshDetail(); render();
+      } else if (t.closest('.dp-done')) {
+        closeDayPop();
+      }
+      return;
+    }
+    if (t.classList && t.classList.contains('daypop-backdrop')) { closeDayPop(); return; }
+
+    // interactive heatmap cell (detail screen) → backdate
+    const bigCell = t.closest && t.closest('.heatmap-big .hm-cell');
+    if (bigCell) { handleDayEdit(bigCell.closest('.heatmap').dataset.habit, bigCell.dataset.date); return; }
 
     // form: day toggle / swatch / type / stepper
     const day = t.closest && t.closest('.day-toggle');
@@ -274,6 +357,10 @@
       completeToday(check.dataset.habit);
       return;
     }
+
+    // tap card body (not the check button) → expand heatmap for backdating
+    const cardEl = t.closest && t.closest('.card');
+    if (cardEl) { openDetail(cardEl.dataset.habit); return; }
   });
 
   // long-press on multi check button = −1
