@@ -40,7 +40,7 @@ const Store = (function () {
       const s = JSON.parse(raw);
       // Minimal shape guard.
       if (!s || typeof s !== 'object' || !Array.isArray(s.habits)) throw new Error('bad shape');
-      s.completions = s.completions || {};
+      if (!s.completions || typeof s.completions !== 'object' || Array.isArray(s.completions)) s.completions = {};
       s.settings = s.settings || { theme: 'dark', version: '1.0.0' };
       return s;
     } catch (e) {
@@ -51,12 +51,14 @@ const Store = (function () {
 
   let state = load();
 
-  /* ---- persistence (silent retry; ISSUE-10) ---- */
-  function save(attempt) {
+  /* ---- persistence (ISSUE-10) ---- */
+  function save() {
     try {
       localStorage.setItem(KEY, JSON.stringify(state));
     } catch (e) {
-      if (!attempt) { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e2) { /* fatal-only */ } }
+      // Non-fatal: keep the in-memory state usable, but surface for diagnostics
+      // instead of silently re-running the same failing write.
+      console.warn('HabitFly: could not persist data to localStorage.', e);
     }
   }
 
@@ -73,7 +75,7 @@ const Store = (function () {
   function isScheduledOn(habit, d) { return !!habit.schedule[weekdayMon0(d)]; }
 
   function uuid() {
-    if (crypto && crypto.randomUUID) return crypto.randomUUID();
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
     return 'h-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
   }
 
@@ -177,7 +179,7 @@ const Store = (function () {
   function importJSON(text) {
     const s = JSON.parse(text);
     if (!s || !Array.isArray(s.habits)) throw new Error('Not a HabitFly backup');
-    s.completions = s.completions || {};
+    if (!s.completions || typeof s.completions !== 'object' || Array.isArray(s.completions)) s.completions = {};
     s.settings = s.settings || { theme: 'dark', version: '1.0.0' };
     state = s;
     save();

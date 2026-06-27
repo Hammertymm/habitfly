@@ -159,8 +159,7 @@
         '<div class="about-name">Habit<span class="wordmark-accent">Fly</span></div>' +
         '<div class="about-tag">Habits anywhere. Simple.</div>' +
         '<div class="about-ver">Version 1.0.0</div>' +
-      '</div>' +
-      '<input id="import-file" type="file" accept="application/json,.json" hidden />';
+      '</div>';
   }
 
   function downloadBackup() {
@@ -210,7 +209,6 @@
         '<div class="onb-tag">Your saved data looks corrupted. Restore from a backup, or start fresh.</div>' +
         '<button class="onb-cta" type="button" data-rec="import">Import a backup</button>' +
         '<button class="onb-secondary" type="button" data-rec="fresh">Start fresh</button>' +
-        '<input id="import-file" type="file" accept="application/json,.json" hidden />' +
       '</div>';
     document.body.appendChild(el);
   }
@@ -241,10 +239,11 @@
   function completeToday(habitId) {
     const h = Store.getHabit(habitId);
     if (!h) return;
+    const before = Store.getCount(h.id, Store.today());
     if (h.type === 'multi') Store.incMulti(h.id, Store.today(), h.target);
     else Store.toggleBinary(h.id, Store.today());
-    render();          // rebuild list/ordering first…
-    popCard(habitId);  // …then animate the freshly rendered card
+    render();                                   // rebuild list/ordering first…
+    if (Store.getCount(h.id, Store.today()) !== before) popCard(habitId); // …only animate a real change
   }
   function undoMultiToday(habitId) {
     const h = Store.getHabit(habitId);
@@ -288,7 +287,7 @@
         '<span class="screen-title">' + (editing ? 'Edit habit' : 'New habit') + '</span>' +
         '<button class="screen-save" type="button">Save</button>' +
       '</header>' +
-      '<form class="habit-form" data-id="' + (editing ? habit.id : '') + '" autocomplete="off">' +
+      '<form class="habit-form" data-id="' + (editing ? habit.id : '') + '" data-colour="' + esc(model.colour) + '" autocomplete="off">' +
         '<label class="field-label">Name</label>' +
         '<input class="text-input" name="name" placeholder="e.g. Meditate" value="' + esc(model.name) + '" />' +
         '<label class="field-label">Schedule</label>' +
@@ -313,7 +312,8 @@
     const form = $('.habit-form');
     const name = form.querySelector('input[name="name"]').value.trim();
     const schedule = Array.from(form.querySelectorAll('.day-toggle')).map(function (b) { return b.classList.contains('on'); });
-    const colour = (form.querySelector('.swatch.on') || {}).dataset ? form.querySelector('.swatch.on').dataset.colour : Store.PALETTE[0];
+    const selectedSwatch = form.querySelector('.swatch.on');
+    const colour = selectedSwatch ? selectedSwatch.dataset.colour : (form.dataset.colour || Store.PALETTE[0]);
     const type = form.querySelector('.seg-btn.on').dataset.type;
     const target = parseInt(form.querySelector('.step-val').textContent, 10) || 1;
     return { id: form.dataset.id, name: name, schedule: schedule, colour: colour, type: type, target: target };
@@ -364,6 +364,7 @@
     else openDayPop(habitId, date);
   }
   function openDayPop(habitId, date) {
+    closeDayPop(); // never stack two popovers (e.g. rapid double-tap)
     const h = Store.getHabit(habitId);
     const c = Store.getCount(habitId, date);
     const pop = document.createElement('div');
@@ -574,6 +575,14 @@
     if (g.moved) justGestured = true;
   });
   App._gestureGuard = function () { if (justGestured) { justGestured = false; return true; } return false; };
+
+  // Each NEW pointer interaction clears stale guard flags, so a flag set by a
+  // gesture that produced no click (a drag, or a long-press with no trailing
+  // click) can't swallow a later, unrelated tap. Capture phase = runs first.
+  document.addEventListener('pointerdown', function () {
+    justGestured = false;
+    didLongPress = false;
+  }, true);
 
   /* ---------- service worker ---------- */
   if ('serviceWorker' in navigator) {

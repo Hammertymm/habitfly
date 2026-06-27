@@ -50,6 +50,9 @@
   <!-- Push-screen overlay (create / edit / heatmap detail) -->
   <div id="screen" class="screen" aria-live="polite"></div>
 
+  <!-- Single hidden file input reused by Settings import and corrupt-data recovery -->
+  <input id="import-file" type="file" accept="application/json,.json" hidden />
+
   <!-- Bottom tab bar: 3 destinations -->
   <nav class="tab-bar" aria-label="Primary">
     <button class="tab is-active" data-view="today" type="button" aria-current="page">
