@@ -6,12 +6,13 @@
    Bump CACHE when shell assets change to retire old caches.
    ============================================================ */
 
-const CACHE = 'habitfly-shell-v1';
+const CACHE = 'habitfly-shell-v2';
 
 const ASSETS = [
   './',
   './index.html',
   './styles.css',
+  './store.js',
   './app.js',
   './manifest.webmanifest',
   './habitfly_logo.png',

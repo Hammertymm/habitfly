@@ -28,25 +28,27 @@
   <main class="app-main">
     <section id="view-today" class="view is-active" aria-label="Today">
       <h1 class="view-title">Today</h1>
-      <div class="placeholder-card">
-        <p class="placeholder-text">Your habits for today will live here.</p>
-      </div>
+      <div class="view-body"></div>
     </section>
 
     <section id="view-habits" class="view" aria-label="Habits" hidden>
       <h1 class="view-title">Habits</h1>
-      <div class="placeholder-card">
-        <p class="placeholder-text">Your full habit library will live here.</p>
-      </div>
+      <div class="view-body"></div>
     </section>
 
     <section id="view-settings" class="view" aria-label="Settings" hidden>
       <h1 class="view-title">Settings</h1>
-      <div class="placeholder-card">
-        <p class="placeholder-text">Export, import, and about will live here.</p>
-      </div>
+      <div class="view-body"></div>
     </section>
   </main>
+
+  <!-- Add-habit floating button (hidden on Settings via CSS) -->
+  <button class="fab" type="button" aria-label="Add habit">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+  </button>
+
+  <!-- Push-screen overlay (create / edit / heatmap detail) -->
+  <div id="screen" class="screen" aria-live="polite"></div>
 
   <!-- Bottom tab bar: 3 destinations -->
   <nav class="tab-bar" aria-label="Primary">
@@ -85,6 +87,7 @@
     </button>
   </nav>
 
+  <script src="store.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
