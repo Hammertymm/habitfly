@@ -66,7 +66,8 @@
     }
     return '';
   }
-  function cardHTML(habit) {
+  function cardHTML(habit, opts) {
+    opts = opts || {};
     const done = Store.isDoneToday(habit);
     const partial = Store.dayState(habit, Store.today()) === 'partial';
     const accent = esc(habit.colour);
@@ -75,6 +76,7 @@
     return '' +
       '<article class="card" data-habit="' + habit.id + '" data-multi="' + (multi ? 1 : 0) + '">' +
         '<div class="card-head">' +
+          (opts.handle ? '<span class="drag-handle" aria-label="Reorder">⠿</span>' : '') +
           '<span class="habit-dot" style="background:' + accent + '"></span>' +
           '<span class="habit-name">' + esc(habit.name) + '</span>' +
           (multi ? '<span class="habit-count">' + checkLabel(habit) + '</span>' : '') +
@@ -111,14 +113,75 @@
   }
 
   /* ---------- Habits ---------- */
+  function emptyHabits(msg) {
+    return '<div class="placeholder-card"><p class="placeholder-text">' + msg + '</p></div>';
+  }
+  function archivedRowHTML(habit) {
+    return '<div class="arch-row">' +
+      '<span class="habit-dot" style="background:' + esc(habit.colour) + '"></span>' +
+      '<span class="habit-name">' + esc(habit.name) + '</span>' +
+      '<button class="restore-btn" type="button" data-id="' + habit.id + '">Restore</button>' +
+      '</div>';
+  }
   function renderHabits() {
     const host = $('#view-habits .view-body');
-    const list = Store.getHabits({ active: true });
-    if (list.length === 0) {
-      host.innerHTML = '<div class="placeholder-card"><p class="placeholder-text">No habits yet. Tap + to add one.</p></div>';
-      return;
+    const seg = App.habitsSeg || 'active';
+    let html = '<div class="seg habits-seg">' +
+      '<button class="seg-btn' + (seg === 'active' ? ' on' : '') + '" data-seg="active">Active</button>' +
+      '<button class="seg-btn' + (seg === 'archived' ? ' on' : '') + '" data-seg="archived">Archived</button>' +
+      '</div>';
+    if (seg === 'active') {
+      const list = Store.getHabits({ active: true });
+      html += list.length
+        ? '<div class="habit-list">' + list.map(function (h) { return cardHTML(h, { handle: true }); }).join('') + '</div>'
+        : emptyHabits('No habits yet. Tap + to add one.');
+    } else {
+      const list = Store.getHabits({ archived: true });
+      html += list.length
+        ? '<div class="archived-list">' + list.map(archivedRowHTML).join('') + '</div>'
+        : emptyHabits('No archived habits.');
     }
-    host.innerHTML = list.map(cardHTML).join('');
+    host.innerHTML = html;
+  }
+
+  /* ---------- Settings (ISSUE-08) ---------- */
+  function renderSettings() {
+    const host = $('#view-settings .view-body');
+    host.innerHTML =
+      '<div class="settings-group">' +
+        '<button class="settings-row" data-act="export">Export data</button>' +
+        '<button class="settings-row" data-act="import">Import data</button>' +
+        '<button class="settings-row danger" data-act="delete-all">Delete all data</button>' +
+      '</div>' +
+      '<div class="about">' +
+        '<img class="about-logo" src="habitfly_logo.png" alt="" />' +
+        '<div class="about-name">Habit<span class="wordmark-accent">Fly</span></div>' +
+        '<div class="about-tag">Habits anywhere. Simple.</div>' +
+        '<div class="about-ver">Version 1.0.0</div>' +
+      '</div>' +
+      '<input id="import-file" type="file" accept="application/json,.json" hidden />';
+  }
+
+  function downloadBackup() {
+    const blob = new Blob([Store.exportJSON()], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'habitfly-backup-' + Store.today() + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+  function doImport(file) {
+    const reader = new FileReader();
+    reader.onload = function () {
+      try {
+        if (!confirm('Replace all current data with this backup?')) return;
+        Store.importJSON(String(reader.result));
+        render();
+        alert('Backup imported.');
+      } catch (e) { alert('Could not import: ' + e.message); }
+    };
+    reader.readAsText(file);
   }
 
   function emptyStateHTML() {
@@ -129,8 +192,9 @@
   function render() {
     if (App.tab === 'today') renderToday();
     else if (App.tab === 'habits') renderHabits();
-    // settings is static for now
+    else if (App.tab === 'settings') renderSettings();
   }
+  function openEdit(id) { const h = Store.getHabit(id); if (h) openScreen(habitFormScreen(h)); }
 
   /* ---------- completion feedback ---------- */
   function popCard(habitId) {
@@ -297,6 +361,9 @@
   document.addEventListener('click', function (e) {
     const t = e.target;
 
+    // a swipe/drag just happened on this element — swallow the click
+    if (App._gestureGuard && App._gestureGuard()) return;
+
     // tab bar
     const tab = t.closest && t.closest('.tab');
     if (tab) { showTab(tab.dataset.view); return; }
@@ -333,6 +400,26 @@
     // interactive heatmap cell (detail screen) → backdate
     const bigCell = t.closest && t.closest('.heatmap-big .hm-cell');
     if (bigCell) { handleDayEdit(bigCell.closest('.heatmap').dataset.habit, bigCell.dataset.date); return; }
+
+    // Habits segmented control
+    const segTab = t.closest && t.closest('.seg-btn[data-seg]');
+    if (segTab) { App.habitsSeg = segTab.dataset.seg; renderHabits(); return; }
+
+    // Restore archived habit
+    const restore = t.closest && t.closest('.restore-btn');
+    if (restore) { Store.restoreHabit(restore.dataset.id); renderHabits(); return; }
+
+    // Settings actions
+    const sRow = t.closest && t.closest('.settings-row');
+    if (sRow) {
+      const act = sRow.dataset.act;
+      if (act === 'export') downloadBackup();
+      else if (act === 'import') $('#import-file').click();
+      else if (act === 'delete-all') {
+        if (confirm('Delete ALL habits and history? This cannot be undone.')) { Store.deleteAllData(); App.habitsSeg = 'active'; showTab('today'); }
+      }
+      return;
+    }
 
     // form: day toggle / swatch / type / stepper
     const day = t.closest && t.closest('.day-toggle');
@@ -379,6 +466,67 @@
   document.addEventListener('pointerup', cancelPress);
   document.addEventListener('pointercancel', cancelPress);
   document.addEventListener('pointerleave', cancelPress, true);
+
+  // import file chosen
+  document.addEventListener('change', function (e) {
+    if (e.target && e.target.id === 'import-file' && e.target.files[0]) {
+      doImport(e.target.files[0]);
+      e.target.value = '';
+    }
+  });
+
+  /* ---------- Habits tab: swipe (archive/edit) + drag reorder (ISSUE-07) ---------- */
+  let gesture = null, justGestured = false;
+  document.addEventListener('pointerdown', function (e) {
+    if (App.tab !== 'habits' || (App.habitsSeg || 'active') !== 'active') return;
+    const card = e.target.closest && e.target.closest('.habit-list .card');
+    if (!card || e.target.closest('.check-btn')) return;
+    const onHandle = !!e.target.closest('.drag-handle');
+    gesture = { card: card, id: card.dataset.habit, x: e.clientX, y: e.clientY, mode: onHandle ? 'drag' : null, moved: false };
+    if (onHandle) card.classList.add('dragging');
+  });
+  document.addEventListener('pointermove', function (e) {
+    if (!gesture) return;
+    const dx = e.clientX - gesture.x, dy = e.clientY - gesture.y;
+    if (gesture.mode === null) {
+      if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) gesture.mode = 'swipe';
+      else if (Math.abs(dy) > 10) { gesture = null; return; } // vertical scroll
+      else return;
+    }
+    if (gesture.mode === 'swipe') {
+      gesture.moved = true;
+      gesture.card.style.transition = 'none';
+      gesture.card.style.transform = 'translateX(' + dx + 'px)';
+      gesture.card.classList.toggle('swipe-archive', dx < -40);
+      gesture.card.classList.toggle('swipe-edit', dx > 40);
+    } else if (gesture.mode === 'drag') {
+      gesture.moved = true;
+      gesture.card.style.opacity = '0.7';
+      const container = gesture.card.parentNode;
+      const sibs = Array.prototype.slice.call(container.querySelectorAll('.card')).filter(function (c) { return c !== gesture.card; });
+      const after = sibs.find(function (s) { const r = s.getBoundingClientRect(); return e.clientY < r.top + r.height / 2; });
+      if (after) container.insertBefore(gesture.card, after); else container.appendChild(gesture.card);
+    }
+  });
+  document.addEventListener('pointerup', function (e) {
+    if (!gesture) return;
+    const g = gesture; gesture = null;
+    if (g.mode === 'swipe') {
+      const dx = e.clientX - g.x;
+      g.card.style.transition = 'transform 0.2s ease';
+      g.card.classList.remove('swipe-archive', 'swipe-edit');
+      if (dx < -80) { justGestured = true; Store.archiveHabit(g.id); renderHabits(); }
+      else if (dx > 80) { justGestured = true; openEdit(g.id); }
+      else { g.card.style.transform = ''; }
+    } else if (g.mode === 'drag') {
+      g.card.classList.remove('dragging'); g.card.style.opacity = '';
+      const ids = Array.prototype.slice.call(g.card.parentNode.querySelectorAll('.card')).map(function (c) { return c.dataset.habit; });
+      Store.reorder(ids);
+      justGestured = true;
+    }
+    if (g.moved) justGestured = true;
+  });
+  App._gestureGuard = function () { if (justGestured) { justGestured = false; return true; } return false; };
 
   /* ---------- service worker ---------- */
   if ('serviceWorker' in navigator) {
