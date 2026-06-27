@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>HabitFly</title>
+  <meta name="description" content="Habits anywhere. Simple." />
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#000000" />
+
+  <!-- iOS "Add to Home Screen" -->
+  <link rel="apple-touch-icon" href="habitfly_logo.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="HabitFly" />
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Top chrome: the Fly-family wordmark -->
+  <header class="app-header">
+    <span class="wordmark">Habit<span class="wordmark-accent">Fly</span></span>
+  </header>
+
+  <!-- The three tab views. Only one is visible at a time (.is-active). -->
+  <main class="app-main">
+    <section id="view-today" class="view is-active" aria-label="Today">
+      <h1 class="view-title">Today</h1>
+      <div class="placeholder-card">
+        <p class="placeholder-text">Your habits for today will live here.</p>
+      </div>
+    </section>
+
+    <section id="view-habits" class="view" aria-label="Habits" hidden>
+      <h1 class="view-title">Habits</h1>
+      <div class="placeholder-card">
+        <p class="placeholder-text">Your full habit library will live here.</p>
+      </div>
+    </section>
+
+    <section id="view-settings" class="view" aria-label="Settings" hidden>
+      <h1 class="view-title">Settings</h1>
+      <div class="placeholder-card">
+        <p class="placeholder-text">Export, import, and about will live here.</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Bottom tab bar: 3 destinations -->
+  <nav class="tab-bar" aria-label="Primary">
+    <button class="tab is-active" data-view="today" type="button" aria-current="page">
+      <svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/>
+        <g stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/>
+          <line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/>
+          <line x1="4.9" y1="4.9" x2="7" y2="7"/><line x1="17" y1="17" x2="19.1" y2="19.1"/>
+          <line x1="4.9" y1="19.1" x2="7" y2="17"/><line x1="17" y1="7" x2="19.1" y2="4.9"/>
+        </g>
+      </svg>
+      <span class="tab-label">Today</span>
+    </button>
+
+    <button class="tab" data-view="habits" type="button">
+      <svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+          <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+          <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+          <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+        </g>
+      </svg>
+      <span class="tab-label">Habits</span>
+    </button>
+
+    <button class="tab" data-view="settings" type="button">
+      <svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/>
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+          d="M19.4 13a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.56V21a2 2 0 0 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1H3a2 2 0 0 1 0-4h.09a1.7 1.7 0 0 0 1.56-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H10a1.7 1.7 0 0 0 1-1.56V3a2 2 0 0 1 4 0v.09a1.7 1.7 0 0 0 1 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V10a1.7 1.7 0 0 0 1.56 1H21a2 2 0 0 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1z"/>
+      </svg>
+      <span class="tab-label">Settings</span>
+    </button>
+  </nav>
+
+  <script src="app.js"></script>
+</body>
+</html>

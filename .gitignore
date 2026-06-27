@@ -19,3 +19,6 @@ Thumbs.db
 # Env / secrets
 .env
 .env.local
+
+# Local preview config
+.claude/

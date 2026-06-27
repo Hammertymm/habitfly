@@ -1,0 +1,177 @@
+/* ============================================================
+   HabitFly — app shell styles (ISSUE-00)
+   Brand tokens are the Fly-family set, sourced from ScoreFly.
+   ============================================================ */
+
+/* ---- Self-hosted fonts (no network at runtime) ---- */
+@font-face {
+  font-family: 'Inter';
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url('fonts/inter-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  src: url('fonts/inter-600.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url('fonts/inter-700.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'D-DIN';
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url('fonts/D-DIN-Bold.otf') format('opentype');
+}
+
+/* ---- Design tokens (PRD §2.2) ---- */
+:root {
+  /* Surfaces */
+  --bg: #000000;
+  --card: #111114;
+  --card2: #1c1c1e;
+  --sep: rgba(255, 255, 255, 0.08);
+
+  /* Brand / state */
+  --green: #06f03c;        /* DONE, wordmark "Fly", CTAs */
+  --orange: #ff9f0a;       /* PARTIAL (multi-count) */
+
+  /* Text */
+  --text: #ffffff;
+  --text-2: rgba(235, 235, 245, 0.8);
+  --text-3: rgba(235, 235, 245, 0.4);
+
+  /* Heatmap */
+  --heatmap-empty: #2c2c2e;
+
+  /* Layout */
+  --app-max: 430px;
+  --header-h: 52px;
+  --tabbar-h: 60px;
+  --ui-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --num-font: 'D-DIN', 'Inter', sans-serif;
+}
+
+/* ---- Reset ---- */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+
+html { background: var(--bg); }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--ui-font);
+  -webkit-font-smoothing: antialiased;
+  max-width: var(--app-max);
+  margin: 0 auto;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+button { font-family: inherit; }
+
+/* ---- Header ---- */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  height: calc(var(--header-h) + env(safe-area-inset-top));
+  padding-top: env(safe-area-inset-top);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  border-bottom: 1px solid var(--sep);
+}
+
+.wordmark {
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: -0.2px;
+  color: var(--text);
+}
+.wordmark-accent { color: var(--green); }
+
+/* ---- Main / views ---- */
+.app-main {
+  padding: 12px 12px calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 24px);
+  min-height: calc(100dvh - var(--header-h) - var(--tabbar-h));
+}
+
+.view { display: none; }
+.view.is-active { display: block; }
+
+.view-title {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  margin: 8px 2px 14px;
+}
+
+/* ---- Placeholder card (reuses the real card style) ---- */
+.placeholder-card {
+  background: var(--card);
+  border: 1px solid var(--sep);
+  border-radius: 12px;
+  padding: 28px 16px;
+  text-align: center;
+}
+.placeholder-text {
+  margin: 0;
+  color: var(--text-3);
+  font-size: 15px;
+}
+
+/* ---- Bottom tab bar ---- */
+.tab-bar {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 0;
+  width: 100%;
+  max-width: var(--app-max);
+  height: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  display: flex;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-top: 1px solid var(--sep);
+  z-index: 20;
+}
+
+.tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border: none;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  padding: 6px 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.15s ease;
+}
+.tab.is-active { color: var(--green); }
+
+.tab-icon { width: 24px; height: 24px; }
+.tab-label { font-size: 11px; font-weight: 600; letter-spacing: 0.2px; }
+
+/* ---- Respect Reduce Motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
