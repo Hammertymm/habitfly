@@ -24,6 +24,8 @@ All 11 vertical slices are built and deployed to GitHub Pages.
 | Artifact | What it is |
 |---|---|
 | [`index.html` · `app.js` · `store.js` · `sw.js`](.) | The app — a vanilla-JS offline PWA (no build step, no dependencies) |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | How it's built — a plain-English tour of the code |
+| [`CHANGELOG.md`](CHANGELOG.md) | What shipped, version by version |
 | [`PRD.md`](PRD.md) | Full product requirements, generated from a 123-question discovery (10 phases) |
 | [`issues/`](issues/) | The PRD sliced into 11 buildable **vertical slices** (tracer bullets) |
 | [GitHub Issues #1–#11](https://github.com/Hammertymm/habitfly/issues?q=is%3Aissue) | The slices, tracked + closed under the **v1 MVP** milestone with a dependency map |
