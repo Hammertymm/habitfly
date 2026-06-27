@@ -342,7 +342,7 @@
         '<button class="screen-edit" type="button" data-id="' + habit.id + '">Edit</button>' +
       '</header>' +
       '<div class="detail-body">' +
-        '<p class="detail-hint">Tap a day to add or edit it.</p>' +
+        '<p class="detail-hint">Tap a day to add or remove it.</p>' +
         '<div id="detail-hm">' + heatmapHTML(habit, { big: true, interactive: true }) + '</div>' +
       '</div>';
   }
